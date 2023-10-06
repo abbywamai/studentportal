@@ -1,42 +1,50 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
 
-Base = declarative_base()
+db = SQLAlchemy()
 
 # Define the Teacher class
-class Teacher(Base):
+class Teacher(db.Model, SerializerMixin):
     __tablename__ = 'teachers'
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    salary = Column(Integer)
-    classes = relationship('Class', backref='teacher', lazy=True)
+
+    serialize_rules = ('-teacher_classes.teacher',)
+
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String)
+    last_name = db.Column(db.String)
+    salary = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+
+    teacher_classes = db.relationship('Class', backref='teacher')
 
 # Define the Student class
-class Student(Base):
+class Student(db.Model, SerializerMixin):
     __tablename__ = 'students'
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    gender = Column(String)
-    age = Column(Integer)
-    grade = Column(Integer)
-    classes = relationship('Class', backref='student', lazy=True)
+
+    serialize_rules = ('-student_classes.student',)
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String)
+    last_name = db.Column(db.String)
+    gender = db.Column(db.String)
+    age = db.Column(db.Integer)
+    grade = db.Column(db.Integer)
+    stud_classes = db.relationship('Class', backref='student')
 
 # Define the Class class
-class Class(Base):
+class Class(db.Model, SerializerMixin):
     __tablename__ = 'classes'
-    id = Column(Integer, primary_key=True)
-    title = Column(String)
-    teacher_id = Column(Integer, ForeignKey('teachers.id'))
-    student_id = Column(Integer, ForeignKey('students.id'))
-    start_time = Column(DateTime, default=datetime.now)
-    end_time = Column(DateTime, default=datetime.now)
-    teacher = relationship('Teacher', backref='classes')
-    student = relationship('Student', backref='classes')
 
-# Create the engine and tables
-engine = create_engine('sqlite:///school.db')  # Change the URL to your desired database
-Base.metadata.create_all(engine)
+    serialize_rules = ('-teacher.teacher_classes', '-student.stud_classes',)
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'))
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'))
+    start_time = db.Column(db.DateTime, default=datetime.now)
+    end_time = db.Column(db.DateTime, default=datetime.now)
+
+
